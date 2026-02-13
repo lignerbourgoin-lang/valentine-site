@@ -152,18 +152,17 @@
     </div>
 
     <script>
-        // EDIT HERE: Remplace les chemins d'images par les tiens.
-        // Important : garde bien la structure avec 'src' et 'isMe'.
+        // Toutes les images sont considérées comme correctes.
         const images = [
-            { src: 'assets/me1.jpg', isMe: true },
-            { src: 'assets/decoy1.jpg', isMe: false },
-            { src: 'assets/me2.jpg', isMe: true },
-            { src: 'assets/decoy2.jpg', isMe: false },
-            { src: 'assets/me3.jpg', isMe: true },
-            { src: 'assets/decoy3.jpg', isMe: false },
-            { src: 'assets/decoy4.jpg', isMe: false },
-            { src: 'assets/me4.jpg', isMe: true },
-            { src: 'assets/decoy5.jpg', isMe: false },
+            { src: 'assets/me1.jpg' },
+            { src: 'assets/me2.jpg' },
+            { src: 'assets/me3.jpg' },
+            { src: 'assets/me4.jpg' },
+            { src: 'assets/decoy1.jpg' },
+            { src: 'assets/decoy2.jpg' },
+            { src: 'assets/decoy3.jpg' },
+            { src: 'assets/decoy4.jpg' },
+            { src: 'assets/decoy5.jpg' },
         ];
 
         // Fonction pour mélanger le tableau (algorithme de Fisher-Yates)
@@ -205,14 +204,9 @@
 
         verifyBtn.addEventListener('click', () => {
             const selectedItems = document.querySelectorAll('.grid-item.selected');
-            const correctIds = images.map((img, i) => img.isMe ? i : -1).filter(i => i !== -1);
-            const selectedIds = Array.from(selectedItems).map(item => parseInt(item.dataset.index));
 
-            // Vérification : l'utilisateur a-t-il sélectionné TOUTES les bonnes images ET SEULEMENT les bonnes ?
-            const isCorrect = selectedIds.length === correctIds.length && 
-                              correctIds.every(id => selectedIds.includes(id));
-
-            if (isCorrect) {
+            // Vérification : l'utilisateur a-t-il sélectionné les 9 images ?
+            if (selectedItems.length === 9) {
                 messageEl.textContent = 'Validation réussie 💘';
                 messageEl.className = 'message success';
                 setTimeout(() => {
