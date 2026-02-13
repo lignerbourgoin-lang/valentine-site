@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captcha presque normal</title>
+    <link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
+    <style>
+        :root {
+            --bg-color: #fce4ec;
+            --grid-bg: #fff;
+            --text-color: #333;
+            --button-bg: #ff4081;
+            --button-text-color: #fff;
+            --border-color: #f48fb1;
+            --success-color: #4CAF50;
+            --error-color: #F44336;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .captcha-container {
+            background-color: var(--grid-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+        }
+
+        p {
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .captcha-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .grid-item {
+            position: relative;
+            width: 100%;
+            padding-bottom: 100%; /* Aspect ratio 1:1 */
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .grid-item img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.2s ease;
+        }
+
+        .grid-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 4px solid transparent;
+            border-radius: 8px;
+            transition: border-color 0.2s ease;
+            z-index: 2;
+        }
+
+        .grid-item.selected {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .grid-item.selected::before {
+            border-color: var(--button-bg);
+        }
+
+        .verify-button {
+            width: 100%;
+            background-color: var(--button-bg);
+            color: var(--button-text-color);
+            border: none;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .verify-button:hover {
+            opacity: 0.9;
+        }
+        
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+            height: 20px;
+        }
+        .message.success { color: var(--success-color); }
+        .message.error { color: var(--error-color); }
+
+        /* Animation de secousse en cas d'erreur */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="captcha-container" id="captcha-container">
+        <h1>Est-ce que tu aimes les fous, les lovers, les bg et les mélanges entre Grinch et Timon ?</h1>
+        <p>Si oui, clique sur toutes les photos de moi 😄</p>
+        
+        <div class="captcha-grid" id="captcha-grid">
+            <!-- Les images seront injectées ici par le JS -->
+        </div>
+
+        <button class="verify-button" id="verify-btn">Vérifier</button>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        // EDIT HERE: Remplace les chemins d'images par les tiens.
+        // Important : garde bien la structure avec 'src' et 'isMe'.
+        const images = [
+            { src: 'assets/me1.jpg', isMe: true },
+            { src: 'assets/decoy1.jpg', isMe: false },
+            { src: 'assets/me2.jpg', isMe: true },
+            { src: 'assets/decoy2.jpg', isMe: false },
+            { src: 'assets/me3.jpg', isMe: true },
+            { src: 'assets/decoy3.jpg', isMe: false },
+            { src: 'assets/decoy4.jpg', isMe: false },
+            { src: 'assets/me4.jpg', isMe: true },
+            { src: 'assets/decoy5.jpg', isMe: false },
+        ];
+
+        // Fonction pour mélanger le tableau (algorithme de Fisher-Yates)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        const grid = document.getElementById('captcha-grid');
+        const verifyBtn = document.getElementById('verify-btn');
+        const messageEl = document.getElementById('message');
+        const captchaContainer = document.getElementById('captcha-container');
+
+        function initializeCaptcha() {
+            // Mélanger et créer la grille
+            shuffle(images);
+            grid.innerHTML = ''; // Vider la grille
+            images.forEach((imgData, index) => {
+                const item = document.createElement('div');
+                item.classList.add('grid-item');
+                item.dataset.index = index; // Pour retrouver l'image originale
+                
+                const img = document.createElement('img');
+                img.src = imgData.src;
+                // EDIT HERE: Ajoute un texte alternatif pour l'accessibilité
+                img.alt = `Image captcha ${index + 1}`;
+                
+                item.appendChild(img);
+                grid.appendChild(item);
+
+                // Gérer la sélection
+                item.addEventListener('click', () => {
+                    item.classList.toggle('selected');
+                });
+            });
+        }
+
+        verifyBtn.addEventListener('click', () => {
+            const selectedItems = document.querySelectorAll('.grid-item.selected');
+            const correctIds = images.map((img, i) => img.isMe ? i : -1).filter(i => i !== -1);
+            const selectedIds = Array.from(selectedItems).map(item => parseInt(item.dataset.index));
+
+            // Vérification : l'utilisateur a-t-il sélectionné TOUTES les bonnes images ET SEULEMENT les bonnes ?
+            const isCorrect = selectedIds.length === correctIds.length && 
+                              correctIds.every(id => selectedIds.includes(id));
+
+            if (isCorrect) {
+                messageEl.textContent = 'Validation réussie 💘';
+                messageEl.className = 'message success';
+                setTimeout(() => {
+                    window.location.href = 'question.html';
+                }, 1000); // Redirection après 1 seconde
+            } else {
+                messageEl.textContent = 'Nope 😈 réessaie';
+                messageEl.className = 'message error';
+                captchaContainer.classList.add('shake');
+                
+                // Réinitialiser la sélection et l'animation
+                setTimeout(() => {
+                    captchaContainer.classList.remove('shake');
+                    selectedItems.forEach(item => item.classList.remove('selected'));
+                }, 600);
+            }
+        });
+
+        // Lancer le captcha au chargement de la page
+        initializeCaptcha();
+    </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La question finale...</title>
+    <link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
+    <style>
+        :root {
+            --bg-color: #fce4ec;
+            --text-color: #333;
+            --yes-bg: #4CAF50;
+            --yes-hover: #43A047;
+            --no-bg: #F44336;
+            --no-hover: #E53935;
+            --button-text-color: #fff;
+            --grinch-body: #7CB342;
+            --grinch-face: #AED581;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 8vw, 4rem);
+            margin-bottom: 40px;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .styled-button {
+            border: none;
+            color: var(--button-text-color);
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            transform: scale(1);
+        }
+
+        .styled-button:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            transform: scale(1.05);
+        }
+
+        #yes-btn { background-color: var(--yes-bg); }
+        #yes-btn:hover { background-color: var(--yes-hover); }
+
+        #no-btn { background-color: var(--no-bg); }
+        #no-btn:hover { background-color: var(--no-hover); }
+
+        /* --- Canvas pour les confettis --- */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none; /* Important pour ne pas bloquer les clics */
+        }
+        
+        .final-message {
+            font-size: clamp(2.5rem, 10vw, 6rem);
+            font-weight: bold;
+            color: #ff4081;
+            animation: pop-in 0.5s ease;
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- Personnage Grincheux --- */
+        #grumpy-character {
+            position: fixed;
+            bottom: -300px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 200px;
+            z-index: 20;
+            transition: bottom 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        #grumpy-character.visible {
+            bottom: 0;
+        }
+
+        .grumpy-body {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 180px;
+            background-color: var(--grinch-body);
+            border-radius: 60% 60% 10px 10px;
+        }
+        
+        .grumpy-face {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 60%;
+            background-color: var(--grinch-face);
+            border-radius: 50%;
+        }
+
+        .eye {
+            position: absolute;
+            top: 25px;
+            width: 20px;
+            height: 30px;
+            background-color: white;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        .eye.left { left: 25px; }
+        .eye.right { right: 25px; }
+        .eye::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 8px;
+            width: 8px;
+            height: 8px;
+            background-color: #333;
+            border-radius: 50%;
+        }
+
+        .eyebrow {
+            position: absolute;
+            top: 15px;
+            width: 30px;
+            height: 5px;
+            background-color: #333;
+        }
+        .eyebrow.left { left: 20px; transform: rotate(15deg); }
+        .eyebrow.right { right: 20px; transform: rotate(-15deg); }
+
+        .mouth {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 20px;
+            border: 3px solid #333;
+            border-top-color: transparent;
+            border-radius: 0 0 50px 50px;
+        }
+        
+        .speech-bubble {
+            position: absolute;
+            top: -70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+        .speech-bubble.visible {
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="container" id="question-container">
+        <h1>Veux-tu être ma Valentine ?</h1>
+        <div class="buttons-container">
+            <button class="styled-button" id="yes-btn">Oui</button>
+            <button class="styled-button" id="no-btn">Non</button>
+        </div>
+    </div>
+    
+    <div id="grumpy-character">
+        <div class="speech-bubble" id="speech-bubble">T'es sûre ? 😤</div>
+        <div class="grumpy-body">
+            <div class="grumpy-face">
+                <div class="eyebrow left"></div>
+                <div class="eyebrow right"></div>
+                <div class="eye left"></div>
+                <div class="eye right"></div>
+                <div class="mouth"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bonus : petit conteneur pour le bouton son -->
+    <div id="sound-control" style="position: fixed; top: 20px; right: 20px; z-index: 100;">
+        <button id="sound-btn" style="background: #fff; border: 1px solid #ccc; border-radius: 50%; width: 40px; height: 40px; cursor: pointer;">🔈</button>
+    </div>
+    
+    <script>
+        // EDIT HERE: Personnalise le prénom
+        const valentineName = "ma Valentine"; // ex: "mon Valentin", "mon Eliott", etc.
+
+        // Remplacer le texte avec le prénom personnalisé
+        document.querySelector('h1').textContent = `Veux-tu être ${valentineName} ?`;
+
+        const yesBtn = document.getElementById('yes-btn');
+        const noBtn = document.getElementById('no-btn');
+        const questionContainer = document.getElementById('question-container');
+        
+        // --- Logique du bouton OUI ---
+        yesBtn.addEventListener('click', () => {
+            // Cacher les boutons et la question
+            questionContainer.innerHTML = `<div class="final-message">YEEEES 💖💖💖</div>`;
+            // Lancer les confettis
+            startConfetti();
+        });
+
+        // --- Logique du bouton NON ---
+        const grumpyCharacter = document.getElementById('grumpy-character');
+        const speechBubble = document.getElementById('speech-bubble');
+        
+        noBtn.addEventListener('click', () => {
+            grumpyCharacter.classList.add('visible');
+            setTimeout(() => {
+                speechBubble.classList.add('visible');
+            }, 300);
+
+            // Cacher le personnage après un moment
+            setTimeout(() => {
+                speechBubble.classList.remove('visible');
+                grumpyCharacter.classList.remove('visible');
+            }, 3000);
+        });
+
+        // --- Bonus : Contrôle du son ---
+        const soundBtn = document.getElementById('sound-btn');
+        // EDIT HERE: Remplace par le chemin de ton fichier audio
+        const jingle = new Audio('assets/jingle.mp3'); 
+        let isSoundEnabled = false;
+
+        soundBtn.addEventListener('click', () => {
+            isSoundEnabled = !isSoundEnabled;
+            soundBtn.textContent = isSoundEnabled ? '🔊' : '🔈';
+            // Joue un son au clic si activé
+            if (isSoundEnabled) {
+                jingle.volume = 0.5;
+                jingle.play().catch(() => {}); // catch pour éviter les erreurs si l'utilisateur n'a pas interagi
+            }
+        });
+
+        // --- Animation de confettis ---
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let confettiParticles = [];
+        
+        function startConfetti() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const numberOfParticles = 200;
+            for (let i = 0; i < numberOfParticles; i++) {
+                confettiParticles.push(createParticle());
+            }
+            animateConfetti();
+        }
+
+        function createParticle() {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height - canvas.height;
+            const size = Math.random() * 10 + 5;
+            const color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+            const speed = Math.random() * 3 + 2;
+            const angle = Math.random() * Math.PI * 2;
+            return { x, y, size, color, speed, angle };
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            confettiParticles.forEach(p => {
+                p.y += p.speed;
+                p.x += Math.sin(p.y * 0.1) * 2; // Léger mouvement latéral
+                
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.rect(p.x, p.y, p.size, p.size);
+                ctx.fill();
+
+                // Recréer la particule si elle sort de l'écran
+                if (p.y > canvas.height) {
+                    p.y = -20;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+
+            requestAnimationFrame(animateConfetti);
+        }
+
+    </script>
+</body>
+</html>
